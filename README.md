@@ -1,5 +1,5 @@
 # TP Conteneurisation Hybride – Docker & LXD
-
+Groupe : Jilani LESSUEUR, Benit Landry MUSINDI, Aichä Khefif
 Ce projet illustre une approche **hybride de la conteneurisation** en deux étapes :
 - **Partie 1 : Infrastructure de base sous Docker**
 - **Partie 2 : Infrastructure cible sous LXD (avec reverse proxy Docker)**
