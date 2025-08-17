@@ -19,7 +19,7 @@ L’infrastructure initiale repose uniquement sur **Docker** :
 - `projects/site1/www/` → contenu du site web
 
 ⚙️ Lancement manuel :
-
+```bash
 # Construction et lancement
 docker build -t site1-apache docker/apache
 docker build -t site1-mariadb docker/mariadb
