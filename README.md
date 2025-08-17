@@ -1,64 +1,58 @@
-# TP – Conteneurisation Hybride (Docker + LXD)
+# TP Conteneurisation Hybride – Docker & LXD
 
-## Sommaire
-- [Objectifs](#objectifs)
-- [Arborescence](#arborescence)
-- [Prérequis](#prérequis)
-- [Partie 1 — Docker (état actuel)](#partie-1--docker-état-actuel)
-- [Partie 2 — LXD (état cible)](#partie-2--lxd-état-cible)
-- [Migration Docker → LXD](#migration-docker--lxd)
-- [Sécurité](#sécurité)
-- [Dépannage](#dépannage)
+Ce projet illustre une approche **hybride de la conteneurisation** en deux étapes :
+- **Partie 1 : Infrastructure de base sous Docker**
+- **Partie 2 : Infrastructure cible sous LXD (avec reverse proxy Docker)**
 
-## Objectifs
-- Infra **Docker** : Apache + MariaDB + reverse proxy Nginx.
-- Infra **LXD** : Apache + MariaDB, dossier partagé hôte→web, exposition via proxy device, **DB accessible uniquement depuis le web**.
-- **Reverse proxy** conservé sous Docker en cible.
-- Procédures de **déploiement manuel** et de **migration**.
+---
 
-## Arborescence
-.
-├─ docker/
-│ ├─ web/ # Dockerfile Apache
-│ ├─ db/ # Dockerfile MariaDB
-│ └─ reverse-proxy/ # Dockerfile Nginx + nginx.conf
-├─ projects/
-│ ├─ site1/www/ # contenu web (Docker)
-│ └─ site2/www/ # contenu web (LXD)
-└─ scripts/
-├─ lxd_deploy.sh # déploiement LXD (web+db, firewall, proxy, shared dir)
-└─ (option) lxd_remove.sh
+## 📌 Partie 1 – Infra de base (Docker)
 
-## Prérequis
-- Linux récent, `sudo`.
-- **Docker** : `sudo apt install -y docker.io && sudo systemctl enable --now docker`
-- **LXD** : `sudo snap install lxd && sudo lxd init`
+L’infrastructure initiale repose uniquement sur **Docker** :
+- Un conteneur **Apache/PHP** qui héberge le site `site1`.
+- Un conteneur **MariaDB** pour la base de données.
+- Un conteneur **Reverse Proxy** (NGINX) exposé en frontal.
+- Un réseau Docker privé pour la communication inter-containers.
 
-## Partie 1 — Docker (état actuel)
-### Build
+📂 Répertoires concernés :
+- `docker/` → Dockerfiles (Apache, MariaDB, Reverse Proxy)
+- `projects/site1/www/` → contenu du site web
 
-docker build -t company01-web:22.04 ./docker/web
-docker build -t company01-db:11    ./docker/db
-docker build -t company01-rp:stable ./docker/reverse-proxy
-Déploiement manuel (exemple site1 sur port 8081)
+⚙️ Lancement manuel :
 
-docker network create net_site1
+# Construction et lancement
+docker build -t site1-apache docker/apache
+docker build -t site1-mariadb docker/mariadb
+docker build -t reverse-proxy docker/reverse-proxy
 
-docker run -d --name db_site1 --network net_site1 \
-  -e MARIADB_ROOT_PASSWORD=rootpass \
-  -e MARIADB_DATABASE=site1_db \
-  -e MARIADB_USER=site1_user \
-  -e MARIADB_PASSWORD=pass \
-  company01-db:11
+# Création du réseau et démarrage
+docker network create site1-net
+docker run -d --name site1-apache --network site1-net site1-apache
+docker run -d --name site1-mariadb --network site1-net site1-mariadb
+docker run -d -p 8081:80 --name reverse-proxy --network site1-net reverse-proxy
 
-docker run -d --name web_site1 --network net_site1 \
-  -p 8081:80 \
-  -v "$PWD/projects/site1/www:/var/www/html:rw" \
-  company01-web:22.04
+## 📌 Partie 2 – Infra cible (LXD + Reverse Proxy Docker)
 
-docker run -d --name reverse-proxy -p 80:80 company01-rp:stable
+L’infrastructure visée repose sur :
+Deux conteneurs LXD :
+- site2apache (Apache/PHP)
+- site2mariadb (MariaDB)
 
-Vérifs
+Une configuration iptables sur site2mariadb qui restreint l’accès uniquement à site2apache.
+Un partage de données entre Apache et MariaDB.
+Le Reverse Proxy Docker reste utilisé pour exposer les services.
 
-curl -s http://localhost:8081 | head -n1   # direct
-curl -s http://localhost      | head -n1   # via RP
+📂 Répertoires concernés :
+scripts/lxd_deploy.sh → script d’automatisation du déploiement
+projects/site2/www/ → contenu du site web migré
+
+⚙️ Lancement automatisé :
+
+# Déploiement LXD (exemple pour site2 sur port 8082)
+./scripts/lxd_deploy.sh site2 8082
+
+👉 Ce script crée automatiquement :
+- Les conteneurs LXD site2apache et site2mariadb
+- La configuration réseau
+- Le pare-feu iptables (port 3306 limité à Apache)
+- Le déploiement du site web
