@@ -6,7 +6,7 @@ Ce projet illustre une approche **hybride de la conteneurisation** en deux étap
 
 ---
 
-## 📌 Partie 1 – Infra de base (Docker)
+## Partie 1 – Infra de base (Docker)
 
 L’infrastructure initiale repose uniquement sur **Docker** :
 - Un conteneur **Apache/PHP** qui héberge le site `site1`.
@@ -14,24 +14,25 @@ L’infrastructure initiale repose uniquement sur **Docker** :
 - Un conteneur **Reverse Proxy** (NGINX) exposé en frontal.
 - Un réseau Docker privé pour la communication inter-containers.
 
-📂 Répertoires concernés :
+ Répertoires concernés :
 - `docker/` → Dockerfiles (Apache, MariaDB, Reverse Proxy)
 - `projects/site1/www/` → contenu du site web
 
-⚙️ Lancement manuel :
+Lancement manuel :
 ```bash
 # Construction et lancement
 docker build -t site1-apache docker/apache
 docker build -t site1-mariadb docker/mariadb
 docker build -t reverse-proxy docker/reverse-proxy
-
+```
+```bash
 # Création du réseau et démarrage
 docker network create site1-net
 docker run -d --name site1-apache --network site1-net site1-apache
 docker run -d --name site1-mariadb --network site1-net site1-mariadb
 docker run -d -p 8081:80 --name reverse-proxy --network site1-net reverse-proxy
-
-## 📌 Partie 2 – Infra cible (LXD + Reverse Proxy Docker)
+```
+##  Partie 2 – Infra cible (LXD + Reverse Proxy Docker)
 
 L’infrastructure visée repose sur :
 Deux conteneurs LXD :
